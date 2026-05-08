@@ -216,6 +216,69 @@ body {
   color: #444;
 }
 
+/* Legend */
+.legend {
+  margin-bottom: 40px;
+  padding: 16px 20px;
+  background: #0d0d14;
+  border: 1px solid #1a1a2a;
+  border-radius: 12px;
+}
+
+.legend-title {
+  font-size: 0.7rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-anim-spin { animation: spin-slow 3s linear infinite; }
+.legend-anim-bounce { animation: bounce 1.5s ease-in-out infinite; }
+.legend-anim-shake { animation: shake 0.5s ease-in-out infinite; }
+.legend-anim-glow { animation: legend-glow 1.5s ease-in-out infinite; }
+
+@keyframes legend-glow {
+  0%, 100% { box-shadow: 0 0 3px currentColor; opacity: 1; }
+  50% { box-shadow: 0 0 8px currentColor; opacity: 0.7; }
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.legend-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.legend-desc {
+  font-size: 0.6rem;
+  color: #555;
+}
+
 /* State-specific figure animations */
 .claude-figure.state-working .figure-body,
 .claude-figure.state-tool_active .figure-body {

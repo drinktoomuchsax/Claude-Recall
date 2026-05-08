@@ -1,5 +1,6 @@
 import { useRecall } from './useRecall'
 import ShopWindow from './ShopWindow'
+import Legend from './Legend'
 import { STATE_COLORS, STATE_DISPLAY } from './types'
 
 function App() {
@@ -27,6 +28,9 @@ function App() {
             : `${aggregate.activeSessions} shop${aggregate.activeSessions > 1 ? 's' : ''} open`}
         </div>
       </div>
+
+      {/* Legend */}
+      <Legend />
 
       {/* Shop windows row */}
       <div className="shop-street">
