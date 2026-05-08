@@ -40,6 +40,7 @@ export function useRecall() {
               lastChange: new Date(),
               eventCount: 0,
               metadata: info.metadata,
+              history: [{ state: info.state, timestamp: new Date() }],
             }
           }
           setSessions(initial)
@@ -79,19 +80,24 @@ export function useRecall() {
             return next
           })
         } else {
-          setSessions(curr => ({
-            ...curr,
-            [sid]: {
-              id: sid,
-              state,
-              previousState: curr[sid]?.state ?? previousState,
-              lastChange: new Date(frame.timestamp),
-              eventCount: (curr[sid]?.eventCount ?? 0) + 1,
-              metadata: frame.metadata ?? curr[sid]?.metadata,
-              duration: frame.duration,
-              durations: frame.durations ?? curr[sid]?.durations,
-            },
-          }))
+          setSessions(curr => {
+            const prev = curr[sid]
+            const history = [...(prev?.history ?? []), { state, timestamp: new Date(frame.timestamp) }]
+            return {
+              ...curr,
+              [sid]: {
+                id: sid,
+                state,
+                previousState: prev?.state ?? previousState,
+                lastChange: new Date(frame.timestamp),
+                eventCount: (prev?.eventCount ?? 0) + 1,
+                metadata: frame.metadata ?? prev?.metadata,
+                duration: frame.duration,
+                durations: frame.durations ?? prev?.durations,
+                history,
+              },
+            }
+          })
         }
       }
     }

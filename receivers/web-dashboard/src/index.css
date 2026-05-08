@@ -65,14 +65,24 @@ body {
   box-shadow: inset 4px 0 16px -6px var(--sc), 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.panel.attention {
-  box-shadow: inset 4px 0 16px -4px var(--sc), 0 0 16px color-mix(in srgb, var(--sc) 20%, transparent);
-  animation: panel-glow 2.5s ease-in-out infinite;
+.panel.needs-you {
+  box-shadow: inset 4px 0 20px -4px var(--sc), 0 0 20px color-mix(in srgb, var(--sc) 25%, transparent);
+  animation: glow-strong 2s ease-in-out infinite;
 }
 
-@keyframes panel-glow {
-  0%, 100% { box-shadow: inset 4px 0 16px -4px var(--sc), 0 0 16px color-mix(in srgb, var(--sc) 20%, transparent); }
-  50% { box-shadow: inset 4px 0 20px -4px var(--sc), 0 0 24px color-mix(in srgb, var(--sc) 30%, transparent); }
+.panel.has-issue {
+  box-shadow: inset 4px 0 14px -4px var(--sc), 0 0 12px color-mix(in srgb, var(--sc) 15%, transparent);
+  animation: glow-mild 3s ease-in-out infinite;
+}
+
+@keyframes glow-strong {
+  0%, 100% { box-shadow: inset 4px 0 20px -4px var(--sc), 0 0 20px color-mix(in srgb, var(--sc) 25%, transparent); }
+  50% { box-shadow: inset 6px 0 28px -4px var(--sc), 0 0 36px color-mix(in srgb, var(--sc) 40%, transparent); }
+}
+
+@keyframes glow-mild {
+  0%, 100% { box-shadow: inset 4px 0 14px -4px var(--sc), 0 0 12px color-mix(in srgb, var(--sc) 15%, transparent); }
+  50% { box-shadow: inset 4px 0 18px -4px var(--sc), 0 0 18px color-mix(in srgb, var(--sc) 22%, transparent); }
 }
 
 /* Panel header */
@@ -194,26 +204,47 @@ body {
   grid-column: 1 / -1;
 }
 
-/* Duration bar */
-.p-barline {
+/* Timeline */
+.p-timeline {
   padding-top: 4px;
   padding-bottom: 4px;
   grid-column: 1 / -1;
 }
 
-.p-bar {
+.timeline {
   display: flex;
-  height: 2px;
-  width: 100%;
-  border-radius: 1px;
-  overflow: hidden;
-  background: #1a1a24;
-  opacity: 0.6;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.p-bar-seg {
-  height: 100%;
-  transition: width 0.4s;
+.tl-row {
+  display: flex;
+  gap: 2px;
+}
+
+.tl-row-rev {
+  justify-content: flex-end;
+}
+
+.tl-block {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.tl-block.tl-head {
+  opacity: 1;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.tl-block:hover {
+  opacity: 1;
+  transform: scale(1.5);
 }
 
 /* Panel footer */

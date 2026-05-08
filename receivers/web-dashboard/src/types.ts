@@ -44,6 +44,11 @@ export interface StateDurations {
   error: number
 }
 
+export interface StateHistoryEntry {
+  state: string
+  timestamp: Date
+}
+
 export interface SessionState {
   id: string
   state: string
@@ -53,6 +58,7 @@ export interface SessionState {
   metadata?: SessionMetadata
   duration?: number
   durations?: StateDurations
+  history: StateHistoryEntry[]
 }
 
 export interface AggregateState {

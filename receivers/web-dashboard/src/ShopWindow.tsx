@@ -1,4 +1,4 @@
-import { SessionState, StateDurations, STATE_DISPLAY, EFFORT_COLORS, parseModel } from './types'
+import { SessionState, StateHistoryEntry, STATE_DISPLAY, EFFORT_COLORS, parseModel } from './types'
 
 interface Props {
   session: SessionState
@@ -15,14 +15,7 @@ const STATE_CSS_COLOR: Record<string, string> = {
   error: '#e85d5d',
 }
 
-const DUR_SEGMENTS = [
-  { key: 'working' as const, color: '#4a9df8', label: 'thinking' },
-  { key: 'tool_active' as const, color: '#5bc0de', label: 'tool' },
-  { key: 'awaiting_input' as const, color: '#f0ad4e', label: 'waiting' },
-  { key: 'awaiting_permission' as const, color: '#b07ee8', label: 'permission' },
-  { key: 'idle' as const, color: '#3a6b3a', label: 'idle' },
-  { key: 'error' as const, color: '#e85d5d', label: 'error' },
-]
+const TIMELINE_ROW_WIDTH = 40
 
 export default function SessionRow({ session }: Props) {
   const meta = session.metadata
@@ -33,10 +26,11 @@ export default function SessionRow({ session }: Props) {
   const toolLine = meta?.tool_name ? formatToolLine(meta.tool_name, meta.tool_context) : null
   const title = meta?.cwd ?? session.id
 
-  const needsAttention = ['awaiting_input', 'awaiting_permission', 'notification', 'error'].includes(session.state)
+  const needsYou = ['awaiting_input', 'awaiting_permission'].includes(session.state)
+  const hasIssue = ['notification', 'error'].includes(session.state)
 
   return (
-    <div className={`panel ${needsAttention ? 'attention' : ''}`} style={{ '--sc': stateColor } as React.CSSProperties}>
+    <div className={`panel ${needsYou ? 'needs-you' : hasIssue ? 'has-issue' : ''}`} style={{ '--sc': stateColor } as React.CSSProperties}>
       {/* Header line: path + right-aligned meta */}
       <div className="p-header">
         <span className="p-title">┌─ {title}</span>
@@ -78,10 +72,10 @@ export default function SessionRow({ session }: Props) {
         </div>
       )}
 
-      {/* Line 4: duration bar */}
-      {session.durations && totalTime > 1 && (
-        <div className="p-line p-barline">
-          <DurationBar durations={session.durations} total={totalTime} />
+      {/* Timeline: heartbeat of state transitions */}
+      {session.history.length > 1 && (
+        <div className="p-line p-timeline">
+          <Timeline history={session.history} />
         </div>
       )}
 
@@ -91,20 +85,39 @@ export default function SessionRow({ session }: Props) {
   )
 }
 
-function DurationBar({ durations, total }: { durations: StateDurations; total: number }) {
-  const tooltip = DUR_SEGMENTS
-    .filter(s => durations[s.key] >= 1)
-    .map(s => `${s.label}: ${fmt(durations[s.key])} (${Math.round((durations[s.key] / total) * 100)}%)`)
-    .join('  ')
+function Timeline({ history }: { history: StateHistoryEntry[] }) {
+  // Split into rows of TIMELINE_ROW_WIDTH, odd rows reversed (S-shape / boustrophedon)
+  const rows: StateHistoryEntry[][] = []
+  for (let i = 0; i < history.length; i += TIMELINE_ROW_WIDTH) {
+    const row = history.slice(i, i + TIMELINE_ROW_WIDTH)
+    // Odd rows: reverse direction (snake going back)
+    if (rows.length % 2 === 1) row.reverse()
+    rows.push(row)
+  }
+
+  const lastIdx = history.length - 1
 
   return (
-    <span className="p-bar" title={tooltip}>
-      {DUR_SEGMENTS.map(({ key, color }) => {
-        const pct = (durations[key] / total) * 100
-        if (pct < 1) return null
-        return <span key={key} className="p-bar-seg" style={{ width: `${pct}%`, background: color }} />
-      })}
-    </span>
+    <div className="timeline">
+      {rows.map((row, ri) => (
+        <div key={ri} className={`tl-row ${ri % 2 === 1 ? 'tl-row-rev' : ''}`}>
+          {row.map((entry, ci) => {
+            const globalIdx = ri % 2 === 1
+              ? ri * TIMELINE_ROW_WIDTH + (row.length - 1 - ci)
+              : ri * TIMELINE_ROW_WIDTH + ci
+            const isLast = globalIdx === lastIdx
+            return (
+              <span
+                key={ci}
+                className={`tl-block ${isLast ? 'tl-head' : ''}`}
+                style={{ background: STATE_CSS_COLOR[entry.state] ?? '#333' }}
+                title={`${STATE_DISPLAY[entry.state] ?? entry.state} @ ${entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+              />
+            )
+          })}
+        </div>
+      ))}
+    </div>
   )
 }
 
