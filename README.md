@@ -6,8 +6,7 @@ Claude Recall 实时追踪你所有 Claude Code session 的状态，并通过灯
 
 > [English Version](./README_EN.md)
 
-![Dashboard Screenshot](./docs/assets/dashboard.png)
-<!-- 截图：打开 web dashboard，显示多个 session 的橱窗状态 -->
+![Dashboard - 多 session 实时看板](./docs/assets/dashboard-multi.png)
 
 ## 它能做什么
 
@@ -65,8 +64,7 @@ npm install && npx vite
 
 浏览器打开 `http://localhost:5173`。
 
-![Legend](./docs/assets/legend.png)
-<!-- 截图：图例区域，展示各状态颜色和含义 -->
+![Dashboard - 状态图例和橱窗](./docs/assets/dashboard.png)
 
 每个 Claude Code session 显示为一个独立的"商店橱窗"，不同 session 有不同的主题风格。Claude 的状态通过颜色和动画实时反映：
 
@@ -88,14 +86,7 @@ npm install && npx vite
 uv run claude-recall watch --mode all
 ```
 
-```
-  14:05:36  💤 [abc123] off → idle
-  14:05:37  🔵 [abc123] idle → working
-  14:05:38  ⚙️  [abc123] working → tool_active
-  14:05:39  🟣 [abc123] tool_active → awaiting_permission
-  14:05:40  🔵 [abc123] awaiting_permission → working
-  14:05:41  🟡 [abc123] working → awaiting_input
-```
+![Terminal Watch](./docs/assets/terminal-watch.png)
 
 ## 架构
 

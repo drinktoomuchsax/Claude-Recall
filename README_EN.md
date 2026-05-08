@@ -6,7 +6,7 @@ Claude Recall tracks the state of all your Claude Code sessions in real-time and
 
 > [中文版](./README.md)
 
-![Dashboard Screenshot](./docs/assets/dashboard.png)
+![Dashboard - Multi-session real-time view](./docs/assets/dashboard-multi.png)
 
 ## What it does
 
@@ -64,7 +64,7 @@ npm install && npx vite
 
 Open `http://localhost:5173` in your browser.
 
-![Legend](./docs/assets/legend.png)
+![Dashboard - States legend and shop windows](./docs/assets/dashboard.png)
 
 Each Claude Code session appears as a unique "shop window" with its own theme. Claude's state is reflected through colors and animations:
 
@@ -86,14 +86,7 @@ Don't want to open a browser? Use the CLI:
 uv run claude-recall watch --mode all
 ```
 
-```
-  14:05:36  💤 [abc123] off → idle
-  14:05:37  🔵 [abc123] idle → working
-  14:05:38  ⚙️  [abc123] working → tool_active
-  14:05:39  🟣 [abc123] tool_active → awaiting_permission
-  14:05:40  🔵 [abc123] awaiting_permission → working
-  14:05:41  🟡 [abc123] working → awaiting_input
-```
+![Terminal Watch](./docs/assets/terminal-watch.png)
 
 ## Architecture
 
