@@ -22,7 +22,7 @@ from typing import Any
 import websockets
 from websockets.protocol import State
 
-from claude_recall.models import AggregateFrame, HostIdentity, StateFrame
+from claude_recall.models import AggregateFrame, HostIdentity, PresenceFrame, StateFrame
 from claude_recall.transports import register_transport
 from claude_recall.transports.base import BaseTransport
 
@@ -94,7 +94,10 @@ class PushTransport(BaseTransport):
                 pass
             self._ws = None
 
-    async def send(self, frame: StateFrame) -> None:
+    async def send(self, frame: StateFrame | PresenceFrame) -> None:
+        """Accepts both StateFrame and PresenceFrame — both are relayed via
+        the same channel and deserialized by the upstream /ingest endpoint
+        based on the `type` field in the JSON."""
         await self._send_payload(frame.model_dump_json())
 
     async def send_aggregate(self, frame: AggregateFrame) -> None:

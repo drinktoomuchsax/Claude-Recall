@@ -154,9 +154,9 @@ Emitted when the overall aggregated state changes (computed as the max priority 
 
 ### Presence Frame
 
-> **Status:** The `PresenceFrame` schema is defined as of schema v2 (PR 1), but no daemon emits it yet. Sending on startup/shutdown and on `/ingest` connection drops will land in a later PR. Receivers can start validating their parse path now, but should not assume `online`/`offline` frames will actually arrive in the current release.
+Emitted when a daemon comes online or goes offline. In a single-daemon deployment, the daemon emits `online` at startup (via `App.start()`) and best-effort `offline` during `App.stop()`. In cascaded topologies, the upstream daemon emits `online` on behalf of a downstream when its `/ingest` connection is established, and `offline` when the connection drops.
 
-Will be emitted when a daemon comes online or goes offline. In a single-daemon deployment, the daemon will emit `online` at startup and (best-effort) `offline` on shutdown. In cascaded topologies, the upstream daemon will emit `offline` when a downstream's WebSocket connection drops.
+Presence frames are delivered to `/ws` subscribers in `mode=all` and are propagated upstream through `PushTransport` like any other frame.
 
 ```json
 {
@@ -241,13 +241,13 @@ Cascaded topologies use two mechanisms together:
 
 What works now:
 - ✓ Frames carry host identity and cascading metadata (PR 1).
-- ✓ `PresenceFrame` is defined (PR 1).
+- ✓ `PresenceFrame` is defined and emitted on daemon start/stop and on `/ingest` connect/disconnect (PR 1 schema, PR 3 behavior).
 - ✓ v1 receivers stay forward-compatible (PR 1).
 - ✓ `PushTransport` — daemon can act as a WebSocket client and relay frames to an upstream (PR 2).
+- ✓ `/ingest` endpoint — daemon accepts frames pushed from downstream peers, with split-horizon + `message_id` dedup for loop prevention (PR 3).
 
 What's coming:
-- PR 3: `/ingest` endpoint + loop prevention.
-- PR 4: Token-based configuration.
+- PR 4: Token-based configuration + deployment docs.
 
 ## Push Mode (Schema v2, PR 2)
 
@@ -296,8 +296,73 @@ Environment variables take precedence over YAML values.
 ### Behavioral notes
 
 - **Inert when unconfigured**: no `upstream_url` → transport does nothing, no errors, no resource use.
-- **Fail-silent on send**: if the connection is temporarily down, `send()` drops the frame rather than raising. The reconnect loop recovers on its own. The tradeoff: during long outages, some frames are lost — but the current aggregate state is always re-sent when the cascade PR (PR 3) fills in snapshotting on reconnect.
-- **No bidirectional forwarding yet**: `PushTransport` only produces outbound frames. Receiving frames from an upstream (for true mesh topologies) lands in PR 3's `/ingest` endpoint.
+- **Fail-silent on send**: if the connection is temporarily down, `send()` drops the frame rather than raising. The reconnect loop recovers on its own.
+
+## /ingest Endpoint (Schema v2, PR 3)
+
+The inbound counterpart to Push Mode. An upstream daemon exposes `/ingest` to accept frames from downstream daemons, enabling cascading topologies (company-wide dashboards, departmental aggregation, etc.).
+
+A daemon can simultaneously:
+- serve local viewers on `/ws`
+- accept upstream pushes on `/ingest`
+- push to its own upstream via `PushTransport`
+
+That's the "infinite cascade" primitive — the same protocol is symmetric between clients and servers.
+
+### Handshake
+
+```
+downstream ──Authorization: Bearer <token>──▶ upstream GET /ingest
+              ↓ (upgrade)
+downstream ──{"type":"hello","host":{"host_id":"zhang-mbp",...}}──▶ upstream
+              ↓
+upstream broadcasts PresenceFrame { status: "online", host: downstream }
+              ↓
+downstream ──StateFrame / AggregateFrame / PresenceFrame──▶ upstream (repeatedly)
+              ↓
+(on downstream disconnect)
+upstream broadcasts PresenceFrame { status: "offline", host: downstream }
+```
+
+### Authorization
+
+`Authorization: Bearer <token>` is checked against `ingest.allowed_tokens` in config. An empty allowlist accepts any connection (only safe on localhost / behind a tunnel with its own auth layer).
+
+### Loop prevention
+
+Each received frame goes through two checks before being broadcast locally:
+
+1. **Split horizon**: if `self.host_id ∈ frame.forwarded_by`, the frame is dropped — it would loop back on itself.
+2. **Dedup**: if `frame.message_id` was seen recently (LRU cache bounded by `ingest.dedup_max_size` with TTL `ingest.dedup_ttl_sec`), the frame is dropped.
+
+Frames that pass both checks are stamped: the receiving daemon appends its own `host_id` to `forwarded_by` before broadcasting to local transports (which may include further push relays upstream — extending the cascade).
+
+### Enabling /ingest
+
+Disabled by default so single-daemon deployments are not exposed to unauthenticated relays.
+
+**Environment variables (simplest):**
+```bash
+export CLAUDE_RECALL_INGEST_ENABLED=1
+export CLAUDE_RECALL_INGEST_TOKENS=token-a,token-b   # optional allowlist
+```
+
+**YAML config:**
+```yaml
+ingest:
+  enabled: true
+  allowed_tokens:
+    - "child-token-a"
+    - "child-token-b"
+  dedup_ttl_sec: 600        # optional, default 600
+  dedup_max_size: 1000      # optional, default 1000
+```
+
+### Behavioral notes
+
+- **Malformed frames are skipped, not fatal**: bad JSON or unknown `type` values drop the single message but keep the connection open.
+- **A malformed `hello` closes the connection**: presence state must be established cleanly, so we fail fast on the handshake.
+- **Presence frames are delivered to `/ws` subscribers in `mode=all`**: `mode=aggregate` viewers don't receive them (aggregate data is per-local-daemon, while presence is per-host).
 
 ## States
 

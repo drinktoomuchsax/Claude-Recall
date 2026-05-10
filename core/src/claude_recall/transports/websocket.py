@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from claude_recall.models import AggregateFrame, StateFrame
+from claude_recall.models import AggregateFrame, PresenceFrame, StateFrame
 from claude_recall.transports import register_transport
 from claude_recall.transports.base import BaseTransport
 
@@ -39,8 +39,14 @@ class WebSocketTransport(BaseTransport):
                     pass
             self._subscribers.clear()
 
-    async def send(self, frame: StateFrame) -> None:
-        """Send per-session frame to relevant subscribers."""
+    async def send(self, frame: StateFrame | PresenceFrame) -> None:
+        """Send per-session or presence frame to relevant subscribers.
+
+        PresenceFrames are delivered to mode=all subscribers (useful for
+        dashboards that want to reflect host online/offline state); they
+        are skipped for mode=session subscribers since presence is not
+        tied to a specific session_id.
+        """
         payload = frame.model_dump_json()
         async with self._lock:
             dead: list[Subscriber] = []
@@ -79,12 +85,19 @@ class WebSocketTransport(BaseTransport):
         async with self._lock:
             self._subscribers = [s for s in self._subscribers if s.ws != ws]
 
-    def _wants_session_frame(self, sub: Subscriber, frame: StateFrame) -> bool:
+    def _wants_session_frame(
+        self, sub: Subscriber, frame: StateFrame | PresenceFrame
+    ) -> bool:
         if sub.mode == "aggregate":
             return False
         if sub.mode == "all":
             return True
         if sub.mode == "session":
+            # PresenceFrames have no session_id; only deliver them to
+            # subscribers listening for a specific session if we ever add
+            # per-session presence (not now).
+            if isinstance(frame, PresenceFrame):
+                return False
             return sub.session_filter == frame.session_id
         return False
 

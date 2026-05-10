@@ -203,7 +203,7 @@
 
 ---
 
-## PR 3：/ingest endpoint + 防环（级联闭环）
+## PR 3：/ingest endpoint + 防环（级联闭环） ✅ 已完成
 
 ### 目标
 

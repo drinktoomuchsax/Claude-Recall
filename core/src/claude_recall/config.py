@@ -84,12 +84,31 @@ class RuleConfig(BaseModel):
     force: bool = False
 
 
+class IngestConfig(BaseModel):
+    """Settings for the /ingest WebSocket endpoint (receives frames from
+    downstream daemons for cascading topologies).
+
+    Disabled by default so existing single-daemon deployments are not
+    exposed to unauthenticated relays.
+    """
+
+    enabled: bool = False
+    # Bearer tokens accepted on /ingest. Empty list means "allow any"
+    # when enabled — fine for localhost/dev, but production should set
+    # explicit tokens.
+    allowed_tokens: list[str] = []
+    # message_id dedup cache bounds.
+    dedup_ttl_sec: float = 600.0
+    dedup_max_size: int = 1000
+
+
 class RecallConfig(BaseModel):
     server: ServerConfig = ServerConfig()
     host: HostConfig = HostConfig()
     states: StatesConfig = StatesConfig()
     transports: dict[str, TransportConfig] = {}
     rules: list[RuleConfig] = []
+    ingest: IngestConfig = IngestConfig()
 
 
 DEFAULT_RULES: list[dict[str, Any]] = [
@@ -133,6 +152,7 @@ def load_config(path: Path | None = None) -> RecallConfig:
         }
 
     _apply_push_env_overrides(merged)
+    _apply_ingest_env_overrides(merged)
 
     return RecallConfig.model_validate(merged)
 
@@ -166,6 +186,23 @@ def _apply_push_env_overrides(merged: dict[str, Any]) -> None:
     token = os.environ.get("CLAUDE_RECALL_TOKEN")
     if token:
         options["auth_token"] = token
+
+
+def _apply_ingest_env_overrides(merged: dict[str, Any]) -> None:
+    """Allow enabling /ingest purely via environment variables.
+
+    - CLAUDE_RECALL_INGEST_ENABLED=1 turns ingest on.
+    - CLAUDE_RECALL_INGEST_TOKENS is a comma-separated list of allowed
+      Bearer tokens. If unset (and ingest is enabled), any token is
+      accepted — only safe for localhost/dev.
+    """
+    if not os.environ.get("CLAUDE_RECALL_INGEST_ENABLED"):
+        return
+    ingest = merged.setdefault("ingest", {})
+    ingest["enabled"] = True
+    tokens_env = os.environ.get("CLAUDE_RECALL_INGEST_TOKENS")
+    if tokens_env:
+        ingest["allowed_tokens"] = [t.strip() for t in tokens_env.split(",") if t.strip()]
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
