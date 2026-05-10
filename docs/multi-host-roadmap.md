@@ -498,4 +498,4 @@
 
 ## 下一步
 
-在此文档 review 通过后，开始执行 **PR 1：协议骨架**。当前分支：`feat/frame-schema-version`。
+PR 1（协议骨架）和 PR 2（PushTransport）已完成，下一步进入 **PR 3：/ingest endpoint + 防环（级联闭环）** 的实现与联调。

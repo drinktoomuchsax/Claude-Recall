@@ -255,7 +255,7 @@ A daemon can be configured to forward its emitted frames to an upstream daemon's
 
 ### How it connects
 
-```
+```text
 downstream daemon ──wss──▶ upstream daemon (/ingest, PR 3)
                   │
                   └─ outbound connection
