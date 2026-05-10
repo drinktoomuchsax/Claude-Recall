@@ -7,6 +7,13 @@ name: CI
 # PRs are blocked from merge until this run is green once branch
 # protection is enabled (configured in GitHub settings, not here).
 
+# Restrict GITHUB_TOKEN to the minimum pytest actually needs (reading
+# the repo). Without this stanza, jobs inherit the repo-default token
+# scopes, which for many repos still include write access to issues,
+# PRs, and releases — a needless blast radius for a test runner.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
