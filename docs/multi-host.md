@@ -10,7 +10,7 @@ For the wire protocol details (frame formats, state machine, loop prevention), s
 
 ## The mental model
 
-```
+```text
 ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
 │ Alice's Mac    │  │ Bob's Linux    │  │ Carol's Mac    │
 │ claude-recall  │  │ claude-recall  │  │ claude-recall  │
@@ -101,9 +101,15 @@ YAML
 cloudflared tunnel run recall &
 
 # 5. Start the upstream daemon with ingest enabled.
+#    Persist the secret to a 0600 file instead of echoing it — the
+#    terminal scrollback, tmux buffers, `history`, and any log shipper
+#    watching stdout would otherwise capture the bearer token verbatim.
 export CLAUDE_RECALL_INGEST_ENABLED=1
 export CLAUDE_RECALL_INGEST_TOKENS=$(openssl rand -hex 16)
-echo "Bearer token for onboarding: $CLAUDE_RECALL_INGEST_TOKENS"
+umask 077
+mkdir -p ~/.config/claude-recall
+printf '%s\n' "$CLAUDE_RECALL_INGEST_TOKENS" > ~/.config/claude-recall/ingest-secret
+echo "Ingest secret saved to ~/.config/claude-recall/ingest-secret (0600)"
 uv run claude-recall daemon
 ```
 
@@ -111,7 +117,7 @@ uv run claude-recall daemon
 ```bash
 uv run claude-recall issue \
   --upstream wss://recall.yourteam.com/ingest \
-  --secret   "$CLAUDE_RECALL_INGEST_TOKENS" \
+  --secret   "$(< ~/.config/claude-recall/ingest-secret)" \
   --issuer   "Your Team Name"
 # Prints an opaque token string — share privately (1Password, DM, etc.).
 ```
@@ -132,7 +138,7 @@ Same protocol, richer topology. Two realistic approaches:
 
 **3b. Hierarchical**: one upstream per team/department, all of which push to a company-wide upstream. This is where the "output-feeds-input" protocol pays off:
 
-```
+```text
 developer laptops ─► team upstream ─► company upstream ─► CEO dashboard
                        (also has
                         its own /ws

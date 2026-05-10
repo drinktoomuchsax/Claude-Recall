@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-from claude_recall.auth import TokenDecodeError, decode_token
+from claude_recall.auth import RecallToken, TokenDecodeError, decode_token
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +233,7 @@ def _resolve_push_credentials() -> tuple[str | None, str | None]:
     return None, None
 
 
-def _try_decode_token(raw: str) -> Any:
+def _try_decode_token(raw: str) -> RecallToken | None:
     try:
         return decode_token(raw)
     except TokenDecodeError:
