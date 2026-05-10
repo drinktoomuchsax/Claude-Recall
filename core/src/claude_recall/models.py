@@ -63,10 +63,14 @@ class StateDurations(BaseModel):
 
 DEFAULT_AGENT_KIND = "claude"
 
+# Bump on breaking frame shape changes. Receivers should reject unknown majors.
+FRAME_SCHEMA_VERSION = 1
+
 
 class StateFrame(BaseModel):
     """Per-session state frame."""
 
+    schema_version: int = FRAME_SCHEMA_VERSION
     type: str = "session"
     session_id: str
     agent_kind: str = DEFAULT_AGENT_KIND
@@ -82,6 +86,7 @@ class StateFrame(BaseModel):
 class AggregateFrame(BaseModel):
     """Aggregated state across all active sessions."""
 
+    schema_version: int = FRAME_SCHEMA_VERSION
     type: str = "aggregate"
     state: RecallState
     active_sessions: int

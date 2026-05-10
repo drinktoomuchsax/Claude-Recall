@@ -6,6 +6,14 @@ Claude Recall broadcasts **state frames** to all connected consumers whenever Cl
 
 Consumers (lights, apps, widgets) connect via WebSocket or receive frames through push transports (serial, MQTT, HTTP webhook).
 
+## Versioning
+
+Every frame carries a `schema_version` integer. The current version is **1**.
+
+- **Non-breaking additions** (new optional fields) do NOT bump the version.
+- **Breaking changes** (renaming, removing, or changing field types) bump `schema_version` by 1.
+- Receivers **should** check `schema_version` on first frame and reject or degrade gracefully on unknown versions.
+
 ## Frame Types
 
 ### Session Frame
@@ -14,6 +22,7 @@ Emitted when a single session's state changes:
 
 ```json
 {
+  "schema_version": 1,
   "type": "session",
   "session_id": "abc123",
   "state": 60,
@@ -48,6 +57,7 @@ Emitted when a single session's state changes:
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `schema_version` | integer | Frame schema version. Bumped on breaking changes. Receivers should reject unknown majors. |
 | `type` | string | Always `"session"` |
 | `session_id` | string | Unique identifier for the Claude Code session |
 | `state` | integer | New state value (see States below) |
@@ -96,6 +106,7 @@ Emitted when the overall aggregated state changes (computed as the max priority 
 
 ```json
 {
+  "schema_version": 1,
   "type": "aggregate",
   "state": 80,
   "active_sessions": 3,
@@ -110,6 +121,7 @@ Emitted when the overall aggregated state changes (computed as the max priority 
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `schema_version` | integer | Frame schema version. Bumped on breaking changes. Receivers should reject unknown majors. |
 | `type` | string | Always `"aggregate"` |
 | `state` | integer | Highest-priority state across all sessions |
 | `active_sessions` | integer | Number of currently active sessions |
@@ -286,7 +298,7 @@ Response:
 For push-type transports (serial, MQTT), frames are sent as compact JSON lines terminated by `\n`:
 
 ```
-{"type":"aggregate","state":60,"active_sessions":1,"breakdown":{"awaiting_input":1},"timestamp":"2026-05-08T12:00:00Z"}\n
+{"schema_version":1,"type":"aggregate","state":60,"active_sessions":1,"breakdown":{"awaiting_input":1},"timestamp":"2026-05-08T12:00:00Z"}\n
 ```
 
 Serial transports use 115200 baud, 8N1 by default.
